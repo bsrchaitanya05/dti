@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ... (your existing head content) ... -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDfWe_PHoxs4QKPyPLmVmcaLBH8rvqE05w",
+      authDomain: "main-d4346.firebaseapp.com",
+      projectId: "main-d4346",
+      storageBucket: "main-d4346.appspot.com",
+      messagingSenderId: "842910921558",
+      appId: "1:842910921558:web:b7a7c68d97c6449e3f1cf7",
+      measurementId: "G-HG56J129KW"
+    };
+
+    // Initialize Firebase asynchronously
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const logo = document.querySelector('.logo');
+      logo.addEventListener('click', function() {
+        window.location.href = 'http://127.0.0.1:3000/About.html';
+      });
+
+      const fileInput = document.getElementById('fileInput');
+      const filePreview = document.getElementById('filePreview');
+      const issueDescription = document.getElementById('issueDescription');
+
+      const submitButton = document.getElementById('submitButton');
+      const cancelButton = document.getElementById('cancelButton');
+
+      fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (fileInput.files[0].type.startsWith('image/')) {
+              filePreview.innerHTML = `<img src="${e.target.result}" alt="Selected Image">`;
+            } else if (fileInput.files[0].type.startsWith('video/')) {
+              filePreview.innerHTML = `<video width="320" height="240" controls><source src="${e.target.result}" type="${fileInput.files[0].type}"></video>`;
+            }
+          };
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
+
+      submitButton.addEventListener('click', async function() {
+        const file = fileInput.files[0];
+
+        if (!file) {
+          alert('Please select a file');
+          return;
+        }
+
+        const description = issueDescription.value;
+
+        if (!description) {
+          alert('Please provide a description of the issue');
+          return;
+        }
+
+        try {
+          const storage = getStorage(app);
+          const storageRef = ref(storage, 'images/' + file.name);
+
+          // Upload the file
+          await uploadBytes(storageRef, file);
+
+          // Get the URL of the uploaded file
+          const downloadURL = await getDownloadURL(storageRef);
+
+          // Save the data (file URL and description) to the Firestore database
+          await addDoc(collection(db, 'issues'), {
+            imageUrl: downloadURL,
+            description: description,
+            timestamp: new Date().toISOString()
+          });
+
+          // Submit the file and the associated data
+          alert('File and issue description uploaded successfully!');
+          
+          // Create a submit animation
+          filePreview.classList.add('submitted');
+
+          setTimeout(function() {
+            filePreview.innerHTML = 'Submitted Successfully. We will inform you shortly!'; 
+            filePreview.classList.remove('submitted');
+          }, 1000);
+        } catch (error) {
+          console.error('Error:', error);
+          alert('An error occurred while uploading the file. Please try again.');
+        }
+      });
+
+      cancelButton.addEventListener('click', function() {
+        // Clear the file preview and disable submit button
+        filePreview.innerHTML = '';
+        issueDescription.value = '';
+        submitButton.disabled = true;
+      });
+    });
+  </script>
+</head>
+<body>
+  <!-- ... (your existing body content) ... -->
+  <header>
+    <h1>Rural Infrastructure Reporting System</h1>
+    <img class="logo" src="img.jpg" alt="">
+  </header>
+
+  <main>
+    <section class="hero">
+      <img style="width: 100%;" src="Vil.jpg" alt="Rural Village">
+    </section>
+
+    <section class="file-upload">
+      <label for="fileInput">Select Image or Video</label>
+      <input type="file" id="fileInput" accept="image/*,video/*" />
+      <div id="filePreview"></div>
+    </section>
+
+    <section class="buttons">
+      <button id="submitButton">Submit</button>
+      <button id="cancelButton">Cancel</button>
+    </section>
+
+    <section class="overview">
+      <p>This website is designed to help rural villagers report problems with infrastructure in their communities.</p>
+      <p>By uploading photos or videos of the problem and providing a brief description, villagers can bring these issues to the attention of the government.</p>
+      <p>The government will then review the submissions and take action to address the problems.</p>
+    </section>
+
+    <section class="links">
+      <a href="http://127.0.0.1:3000/i.html">Logout</a>
+      <span>|</span>
+      <a href="http://127.0.0.1:3000/About.html">About</a>
+      <span>|</span>
+      <a href="http://127.0.0.1:3000/About.html">Contact</a>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2023 Rural Infrastructure Reporting System</p>
+  </footer>
+</body>
+</html>
